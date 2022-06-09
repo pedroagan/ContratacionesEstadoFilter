@@ -168,6 +168,12 @@ def clean_input_files():
         file_archive = PATH_ARCHIVE + file_input.split("/")[-1]
         os.remove(file_input)
 
+def clean_archive_files():
+    # Remove archive files
+    files = get_list_of_files(PATH_ARCHIVE)
+    for file_archive in files:
+        os.remove(file_archive)
+
 def clean_start_file():
     # Remove first input file
     file = PATH_INPUT + HTTP_REF_INIT.split("/")[-1]
@@ -179,7 +185,7 @@ def get_list_of_files(path):
     files = []
     files_dir = [f for f in listdir(path) if isfile(join(path, f))]
     for file in files_dir:
-        file_path = PATH_INPUT + file
+        file_path = path + file
         files.append(file_path)
 
     return files
@@ -294,6 +300,10 @@ def main(options):
         if not os.path.exists(PATH_ARCHIVE):
             os.makedirs(PATH_ARCHIVE)
 
+        # Clean archive files
+        if options.reset:
+            clean_archive_files()
+
         # Clean all input files
         clean_input_files()
         
@@ -338,6 +348,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="%prog: [options]")
     parser.add_option("--nodownload", dest="nodownload", default=False, action="store_true")
     parser.add_option("--noarchive", dest="noarchive", default=False, action="store_true")
+    parser.add_option("--reset", dest="reset", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Laun main method
