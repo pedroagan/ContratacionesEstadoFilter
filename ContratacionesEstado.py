@@ -16,7 +16,7 @@ from Licitacion import Licitacion
 import Utils
 
 #  Constants
-MAX_FILES_DOWNLOAD = 60
+MAX_FILES_DOWNLOAD = 10
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
@@ -284,6 +284,16 @@ def main(options):
     if(options.nodownload):
         print("WARN! Files are not going to be downloaded")
     else:
+        # Generate directories (if it does not exists)
+        if not os.path.exists(PATH_INPUT):
+            os.makedirs(PATH_INPUT)
+
+        if not os.path.exists(PATH_OUTPUT):
+            os.makedirs(PATH_OUTPUT)
+
+        if not os.path.exists(PATH_ARCHIVE):
+            os.makedirs(PATH_ARCHIVE)
+
         # Clean all input files
         clean_input_files()
         
