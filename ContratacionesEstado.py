@@ -73,7 +73,7 @@ def download_files(http_ref, count):
     else:
         print("Download process finished")
 
-def process_file(file, tender_list):
+def process_file(file, tender_list, filter):
     print("Start processing -> %s" % (file))
     # Counter
     elem_read = 0
@@ -190,7 +190,7 @@ def get_list_of_files(path):
 
     return files
 
-def output_csv_file(tender_list):
+def output_csv_file(tender_list, filters):
     filtered = 0
     # Write output file
     output_filename = PATH_OUTPUT + time.strftime("%Y.%m.%d-%H.%M.%S") + ".csv"
@@ -203,7 +203,7 @@ def output_csv_file(tender_list):
     for key in tender_list.keys():
         #print(key)
         licitacion = tender_list[key]
-        licitacion.filter()
+        licitacion.filter(filters)
         line = licitacion.info()
         foutput.write(line)
         if(len(licitacion.interesa) == 0):
@@ -213,7 +213,7 @@ def output_csv_file(tender_list):
 
     return filtered
 
-def output_xlsx_file(tender_list):
+def output_xlsx_file(tender_list, filters):
     filtered = 0
     # Write output file
     output_filename = PATH_OUTPUT + time.strftime("%Y.%m.%d-%H.%M.%S") + ".xlsx"
@@ -245,7 +245,7 @@ def output_xlsx_file(tender_list):
 
     for key in tender_list.keys():
         licitacion = tender_list[key]
-        licitacion.filter()
+        licitacion.filter(filters)
 
         date = ""
         if(licitacion.fecha != None):
@@ -285,6 +285,30 @@ def output_xlsx_file(tender_list):
 
     return filtered
 
+def check_filters(filters_file):
+    keys = ['administracion', 'organo', 'email', 'title']
+    filters = {}
+    for key in keys:
+        filters[key] = []
+
+    if os.path.exists(filters_file):
+        f = open(filters_file)
+        lines = f.readlines()
+
+        for line in lines:
+            filter = line.strip().split('=')
+            if (len(filter) == 2):
+                
+                if(filter[0] in keys) :
+                    filters[filter[0]].append(filter[1])
+                    print("Filter added for '%s' = %s" % (filter[0], filter[1]))
+                else :
+                    print("ERROR! Invalid key in filters config file : %s" % (filter[0]) )
+            else:
+                print("ERROR! Invalid line in filters config file : %s" % (line) )
+    
+    return filters
+
 def main(options):
 
     if(options.nodownload):
@@ -310,16 +334,19 @@ def main(options):
         # Download first file
         download_files(HTTP_REF_INIT, 0)
 
+    # Check filters
+    filters = check_filters(options.filter)
+
     # Process files downloaded
     elem_read = 0
     filtered = 0
     tender_list = {}
     files = get_list_of_files(PATH_INPUT)
     for file in files:
-        elem_read += process_file(file, tender_list)
+        elem_read += process_file(file, tender_list, filters)
 
     #filtered = output_csv_file(tender_list)
-    filtered = output_xlsx_file(tender_list)
+    filtered = output_xlsx_file(tender_list, filters)
 
     # Move files to archive after processing
     if(options.noarchive):
@@ -349,6 +376,7 @@ if __name__ == '__main__':
     parser.add_option("--nodownload", dest="nodownload", default=False, action="store_true")
     parser.add_option("--noarchive", dest="noarchive", default=False, action="store_true")
     parser.add_option("--reset", dest="reset", default=False, action="store_true")
+    parser.add_option("--filter", dest="filter", default="./filters.conf")
     (options, args) = parser.parse_args()
 
     # Laun main method

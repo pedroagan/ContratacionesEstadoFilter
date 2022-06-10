@@ -19,7 +19,7 @@ class Licitacion(object):
         self.email = ""
         self.deadline = None
 
-    def filter(self):
+    def filter(self, filters):
         no_interesa = False
         filtered = False
         if(self.estado == 'ADJ'):
@@ -37,68 +37,28 @@ class Licitacion(object):
             no_interesa = True
 
         if(len(self.administracion) > 0):
-            if('defensa' in self.administracion.lower()):
-                filtered = True
+            filters_admin = filters['administracion']
+            for filter in filters_admin:
+                if filter in self.administracion.lower():
+                    filtered = True
 
-            if('interior' in self.administracion.lower()):
-                filtered = True
-
-            if('defensa' in self.organo.lower()):
-                filtered = True
-
-            if('interior' in self.organo.lower()):
-                filtered = True
-        #else:
-        #    print("WARN! 'Administracion' of Exp '%s' is NULL (%s)" % (self.expediente, self.administracion) )
+        if(len(self.organo) > 0):
+            filters_organo = filters['organo']
+            for filter in filters_organo:
+                if filter in self.organo.lower():
+                    filtered = True
 
         if(len(self.email) > 0):
-            if('mde.es' in self.email.lower()):
-                filtered = True
-
-            if('interior.es' in self.email.lower()):
-                filtered = True
+            filters_email = filters['email']
+            for filter in filters_email:
+                if filter in self.email.lower():
+                    filtered = True
 
         if(len(self.title) > 0):
-            if('enaire' in self.title.lower()):
-                filtered = True
-
-            if('cpd' in self.title.lower()):
-                filtered = True
-
-            if('cctv' in self.title.lower()):
-                filtered = True
-
-            if('comunicaciones' in self.title.lower()):
-                filtered = True
-
-            if('ciber' in self.title.lower()):
-                filtered = True
-
-            if('incibe' in self.title.lower()):
-                filtered = True
-
-            if('software' in self.title.lower()):
-                filtered = True
-
-            if('sw' in self.title.lower()):
-                filtered = True
-
-            if('hardware' in self.title.lower()):
-                filtered = True
-
-            if('hw' in self.title.lower()):
-                filtered = True
-
-            if('polic' in self.title.lower()):
-                filtered = True
-
-            if('scada' in self.title.lower()):
-                filtered = True
-
-            if('virtual' in self.title.lower()):
-                filtered = True
-        else:
-            print("WARN! 'Title' of Exp '%s' is NULL (%s)" % (self.expediente, self.title) )
+            filters_title = filters['title']
+            for filter in filters_title:
+                if filter in self.title.lower():
+                    filtered = True
 
         if(no_interesa or not filtered):
             self.interesa = "NO"
