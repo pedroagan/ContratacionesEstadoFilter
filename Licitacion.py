@@ -18,9 +18,11 @@ class Licitacion(object):
         self.interesa = ""
         self.email = ""
         self.deadline = None
+        self.filter_applied = ""
 
     def filter(self, filters):
         no_interesa = False
+        filter_applied = ""
         filtered = False
         if(self.estado == 'ADJ'):
             no_interesa = True
@@ -41,27 +43,33 @@ class Licitacion(object):
             for filter in filters_admin:
                 if filter in self.administracion.lower():
                     filtered = True
+                    filter_applied = filter
 
         if(len(self.organo) > 0):
             filters_organo = filters['organo']
             for filter in filters_organo:
                 if filter in self.organo.lower():
                     filtered = True
+                    filter_applied = filter
 
         if(len(self.email) > 0):
             filters_email = filters['email']
             for filter in filters_email:
                 if filter in self.email.lower():
                     filtered = True
+                    filter_applied = filter
 
         if(len(self.title) > 0):
             filters_title = filters['title']
             for filter in filters_title:
                 if filter in self.title.lower():
                     filtered = True
+                    filter_applied = filter
 
         if(no_interesa or not filtered):
             self.interesa = "NO"
+
+        self.filter_applied = filter_applied
 
 
     def info(self):

@@ -16,7 +16,7 @@ from Licitacion import Licitacion
 import Utils
 
 #  Constants
-MAX_FILES_DOWNLOAD = 10
+MAX_FILES_DOWNLOAD = 100
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
@@ -223,25 +223,52 @@ def output_xlsx_file(tender_list, filters):
 
     # Create a workbook and add a worksheet.
     workbook = xlsxwriter.Workbook(output_filename)
-    worksheet = workbook.add_worksheet()
+    worksheet_interesa = workbook.add_worksheet("Interesa")
+    worksheet_no_interesa = workbook.add_worksheet("NO Interesa")
 
     number = workbook.add_format({'num_format': '#,##0'})
 
-    row = 0
+    row_interesa = 0
+    row_no_interesa = 0
 
-    # Header
-    worksheet.write(row, 0, '#fecha')
-    worksheet.write(row, 1, '#interesa')
-    worksheet.write(row, 2, '#expediente')
-    worksheet.write(row, 3, '#title')
-    #worksheet.write(row, 4, '#administracion')
-    worksheet.write(row, 4, '#organo')
-    worksheet.write(row, 5, '#estado')
-    worksheet.write(row, 6, '#importe')
-    worksheet.write(row, 7, '#deadline')
-    worksheet.write(row, 8, '#email')
-    worksheet.write(row, 9, '#details')
-    row += 1
+    # Header Interesa
+    worksheet_interesa.write(row_interesa, 0, '#fecha')
+    worksheet_interesa.set_column(0, 0, 10)
+    worksheet_interesa.write(row_interesa, 1, '#interesa')
+    worksheet_interesa.set_column(1, 1, 10)
+    worksheet_interesa.write(row_interesa, 2, '#expediente')
+    worksheet_interesa.set_column(2, 2, 15)
+    worksheet_interesa.write(row_interesa, 3, '#title')
+    worksheet_interesa.set_column(3, 3, 50)
+    worksheet_interesa.write(row_interesa, 4, '#organo')
+    worksheet_interesa.set_column(4, 4, 30)
+    worksheet_interesa.write(row_interesa, 5, '#estado')
+    worksheet_interesa.set_column(5, 5, 10)
+    worksheet_interesa.write(row_interesa, 6, '#importe')
+    worksheet_interesa.set_column(6, 6, 10)
+    worksheet_interesa.write(row_interesa, 7, '#deadline')
+    worksheet_interesa.set_column(7, 7, 10)
+    worksheet_interesa.write(row_interesa, 8, '#email')
+    worksheet_interesa.set_column(8, 8, 20)
+    worksheet_interesa.write(row_interesa, 9, '#details')
+    worksheet_interesa.set_column(9, 9, 25)
+    worksheet_interesa.write(row_interesa, 10, '#filter')
+    worksheet_interesa.set_column(10, 10, 10)
+    row_interesa += 1
+
+    # Header NO interesa
+    worksheet_no_interesa.write(row_interesa, 0, '#fecha')
+    worksheet_no_interesa.write(row_interesa, 1, '#interesa')
+    worksheet_no_interesa.write(row_interesa, 2, '#expediente')
+    worksheet_no_interesa.write(row_interesa, 3, '#title')
+    worksheet_no_interesa.write(row_interesa, 4, '#organo')
+    worksheet_no_interesa.write(row_interesa, 5, '#estado')
+    worksheet_no_interesa.write(row_interesa, 6, '#importe')
+    worksheet_no_interesa.write(row_interesa, 7, '#deadline')
+    worksheet_no_interesa.write(row_interesa, 8, '#email')
+    worksheet_no_interesa.write(row_interesa, 9, '#details')
+    worksheet_no_interesa.write(row_interesa, 10, '#filter')
+    row_no_interesa += 1
 
     for key in tender_list.keys():
         licitacion = tender_list[key]
@@ -260,26 +287,45 @@ def output_xlsx_file(tender_list, filters):
         except:
             print("ERROR! Cannot convert to float -> %s" % (licitacion.importe))
 
-        worksheet.write(row, 0, date)
-        worksheet.write(row, 1, licitacion.interesa)
-        worksheet.write(row, 2, licitacion.expediente)
-        worksheet.write(row, 3, licitacion.title)
-        #worksheet.write(row, 4, licitacion.administracion)
-        worksheet.write(row, 4, licitacion.organo)
-        worksheet.write(row, 5, licitacion.estado)
-        worksheet.write(row, 6, importe, number)
-        if(licitacion.deadline != None):
-            date = licitacion.deadline.strftime("%Y-%m-%d")
-        else:
-            date = ""
-        worksheet.write(row, 7, date)
-        worksheet.write(row, 8, licitacion.email)
-        worksheet.write(row, 9, licitacion.details)
-
         if(len(licitacion.interesa) == 0):
+            worksheet_interesa.write(row_interesa, 0, date)
+            worksheet_interesa.write(row_interesa, 1, licitacion.interesa)
+            worksheet_interesa.write(row_interesa, 2, licitacion.expediente)
+            worksheet_interesa.write(row_interesa, 3, licitacion.title)
+            #worksheet_interesa.write(row, 4, licitacion.administracion)
+            worksheet_interesa.write(row_interesa, 4, licitacion.organo)
+            worksheet_interesa.write(row_interesa, 5, licitacion.estado)
+            worksheet_interesa.write(row_interesa, 6, importe, number)
+            if(licitacion.deadline != None):
+                date = licitacion.deadline.strftime("%Y-%m-%d")
+            else:
+                date = ""
+            worksheet_interesa.write(row_interesa, 7, date)
+            worksheet_interesa.write(row_interesa, 8, licitacion.email)
+            worksheet_interesa.write(row_interesa, 9, licitacion.details)
+            worksheet_interesa.write(row_interesa, 10, licitacion.filter_applied)
+        
             filtered += 1
-
-        row += 1
+            row_interesa += 1
+        else:
+            worksheet_no_interesa.write(row_no_interesa, 0, date)
+            worksheet_no_interesa.write(row_no_interesa, 1, licitacion.interesa)
+            worksheet_no_interesa.write(row_no_interesa, 2, licitacion.expediente)
+            worksheet_no_interesa.write(row_no_interesa, 3, licitacion.title)
+            #worksheet_no_interesa.write(row_no_interesa, 4, licitacion.administracion)
+            worksheet_no_interesa.write(row_no_interesa, 4, licitacion.organo)
+            worksheet_no_interesa.write(row_no_interesa, 5, licitacion.estado)
+            worksheet_no_interesa.write(row_no_interesa, 6, importe, number)
+            if(licitacion.deadline != None):
+                date = licitacion.deadline.strftime("%Y-%m-%d")
+            else:
+                date = ""
+            worksheet_no_interesa.write(row_no_interesa, 7, date)
+            worksheet_no_interesa.write(row_no_interesa, 8, licitacion.email)
+            worksheet_no_interesa.write(row_no_interesa, 9, licitacion.details)
+            worksheet_no_interesa.write(row_no_interesa, 10, licitacion.filter_applied)
+        
+            row_no_interesa += 1
 
     workbook.close()
 
