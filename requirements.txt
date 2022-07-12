@@ -1,3 +1,5 @@
 certifi==2022.5.18.1
 lxml
 xlsxwriter
+wheel
+pandas

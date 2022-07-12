@@ -26,7 +26,7 @@ import time
 from datetime import datetime
 import re
 
-from Licitacion import Licitacion
+import Licitacion
 import Utils
 
 #  Constants
@@ -98,7 +98,7 @@ def process_file(file, tender_list, filter):
     # all item attributes
     for entry in entries:
 
-        licitacion = Licitacion()
+        licitacion = Licitacion.Licitacion()
 
         # title
         list = entry.getElementsByTagName('title')
