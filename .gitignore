@@ -135,3 +135,6 @@ dmypy.json
 inputs
 outputs
 archive
+*.ini
+*.conf
+*.txt

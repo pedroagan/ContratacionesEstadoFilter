@@ -12,6 +12,20 @@ from datetime import datetime
 from optparse import OptionParser
 import xlsxwriter
 
+import email, smtplib, ssl
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from optparse import OptionParser
+import configparser
+import pandas as pd
+import numpy as np
+import time
+from datetime import datetime
+import re
+
 from Licitacion import Licitacion
 import Utils
 
@@ -329,7 +343,7 @@ def output_xlsx_file(tender_list, filters):
 
     workbook.close()
 
-    return filtered
+    return filtered, output_filename
 
 def check_filters(filters_file):
     keys = ['administracion', 'organo', 'email', 'title']
@@ -356,6 +370,10 @@ def check_filters(filters_file):
     return filters
 
 def main(options):
+
+    # Load configuration file
+    config = configparser.ConfigParser()
+    config.read(options.config)
 
     if(options.nodownload):
         print("WARN! Files are not going to be downloaded")
@@ -392,7 +410,7 @@ def main(options):
         elem_read += process_file(file, tender_list, filters)
 
     #filtered = output_csv_file(tender_list)
-    filtered = output_xlsx_file(tender_list, filters)
+    filtered, xlsx_filename = output_xlsx_file(tender_list, filters)
 
     # Move files to archive after processing
     if(options.noarchive):
@@ -405,13 +423,81 @@ def main(options):
             file_archive = PATH_ARCHIVE + file_input.split("/")[-1]
             os.rename(file_input, file_archive)
 
+    if(config['EMAIL_CONF']['EMAIL_ENABLED']):
+        send_email(config, xlsx_filename)
+
     print("\nResults:")
     print("  - Elements read    : %d" % (elem_read))
     print("  - Elements stored  : %d" % (len(tender_list)))
     print("  - Interesa         : %d" % (filtered))
     print("\n")
     
-    
+
+def send_email(config, attachment):
+    print("Send email to '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
+    if(check_email(config['EMAIL_CONF']['EMAIL_TO'])):
+        print("Connect to '%s:%d'" % (config['EMAIL_CONF']['EMAIL_SERVER'], int(config['EMAIL_CONF']['EMAIL_PORT'])))
+        s = smtplib.SMTP(config['EMAIL_CONF']['EMAIL_SERVER'], config['EMAIL_CONF']['EMAIL_PORT'])
+        s.ehlo() # Hostname to send for this command defaults to the fully qualified domain name of the local host.
+        s.starttls() #Puts connection to SMTP server in TLS mode
+        s.ehlo()
+        s.login(config['EMAIL_CONF']['EMAIL_FROM'], config['EMAIL_CONF']['EMAIL_PASSWD'])
+
+        f = open(config['EMAIL_MSG']['EMAIL_TEXT'],'r', encoding="utf-8")
+        text_email = f.read()
+
+
+        msg = MIMEMultipart()
+        msg['From'] = config['EMAIL_CONF']['EMAIL_FROM']
+        msg['To'] = config['EMAIL_CONF']['EMAIL_TO']
+        msg['Subject'] = config['EMAIL_MSG']['EMAIL_SUBJECT']
+
+        # Add body to email
+        msg.attach(MIMEText(text_email, "plain"))
+
+        # Add attachment to message and convert message to string
+        part = adjuntar_archivo_xlsx(attachment)
+        if(part):
+            msg.attach(part)
+
+        s.sendmail(config['EMAIL_CONF']['EMAIL_FROM'], config['EMAIL_CONF']['EMAIL_TO'], msg.as_string().encode('utf-8'))
+
+        print("Email enviado a '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
+    else:
+        rint("ERROR! Email invalido '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
+
+
+def adjuntar_archivo_xlsx(attachment_filename):
+    part = None
+
+    if(len(attachment_filename) > 0):
+        # Open PDF file in binary mode
+        #with open(attachment, "rb") as attachment:
+        #    # Add file as application/octet-stream
+        #    # Email client can usually download this automatically as attachment
+        #    part = MIMEBase("application", "octet-stream")
+        #    part.set_payload(attachment.read())
+
+        # Open PDF file in binary mode
+        part = MIMEBase('application', "octet-stream")
+        part.set_payload(open(attachment_filename, "rb").read())
+        encoders.encode_base64(part)
+        # Add header as key/value pair to attachment part
+        part.add_header(
+            "Content-Disposition",
+            f"attachment; filename= {os.path.basename(attachment_filename)}",
+        )
+
+    return part
+
+
+def check_email(email):
+    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    if(re.search(regex,email)):
+        return True
+    else:
+        return False
+
 ##
 # Main method
 #
@@ -419,10 +505,11 @@ if __name__ == '__main__':
 
 	# Check arguments
     parser = OptionParser(usage="%prog: [options]")
-    parser.add_option("--nodownload", dest="nodownload", default=False, action="store_true")
-    parser.add_option("--noarchive", dest="noarchive", default=False, action="store_true")
-    parser.add_option("--reset", dest="reset", default=False, action="store_true")
-    parser.add_option("--filter", dest="filter", default="./filters.conf")
+    parser.add_option("--nodownload", dest="nodownload", default=False, action="store_true", help='No Download Data')
+    parser.add_option("--noarchive", dest="noarchive", default=False, action="store_true", help='No archive the data downloaded')
+    parser.add_option("--reset", dest="reset", default=False, action="store_true", help='Reset the search')
+    parser.add_option("--filter", dest="filter", default="./filters.conf", help='Filters search')
+    parser.add_option("--config", dest="config", default="./config.ini", type="string", help='Configuration File')
     (options, args) = parser.parse_args()
 
     # Laun main method
