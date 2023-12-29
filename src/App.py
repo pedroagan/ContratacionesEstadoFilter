@@ -34,9 +34,9 @@ MAX_FILES_DOWNLOAD = 100
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
-PATH_INPUT = "./inputs/"
-PATH_OUTPUT = "./outputs/"
-PATH_ARCHIVE = "./archive/"
+PATH_INPUT = "/inputs/"
+PATH_OUTPUT = "/outputs/"
+PATH_ARCHIVE = "/archive/"
 
 FILE_HEADER = "#fecha;#interesa;#expediente;#titulo;#administracion;#organo;#estado;#importe;#deadline;#detalles;"
 

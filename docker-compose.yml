@@ -1,0 +1,18 @@
+version: "3.5"
+
+services:
+  contrataciones_estado:
+    build: ./src
+    restart: unless-stopped
+    volumes:
+      - ./config/:/config
+      - ./inputs/:/inputs
+      - ./outputs/:/outputs
+      - ./archive/:/archive
+    networks:
+      - networkCommon
+
+networks:
+  networkCommon:
+    driver: bridge
+    name: networkCommon
