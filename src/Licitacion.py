@@ -3,6 +3,13 @@ import datetime
 from datetime import datetime
 from time import gmtime, strftime
 import re
+import logging
+
+logging.basicConfig(
+    format='%(asctime)s.%(msecs)03d %(levelname)-7s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
+_logger = logging.getLogger("contrataciones_estado")
 
 class Licitacion(object):
 

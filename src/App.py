@@ -11,6 +11,7 @@ import datetime
 from datetime import datetime
 from optparse import OptionParser
 import xlsxwriter
+import logging
 
 import email, smtplib, ssl
 from email import encoders
@@ -29,8 +30,14 @@ import re
 import Licitacion
 import Utils
 
+logging.basicConfig(
+    format='%(asctime)s.%(msecs)03d %(levelname)-7s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
+_logger = logging.getLogger("contrataciones_estado")
+
 #  Constants
-MAX_FILES_DOWNLOAD = 100
+MAX_FILES_DOWNLOAD = 2
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
@@ -44,6 +51,7 @@ def download_files(http_ref, count):
     # Manage command
     command = "wget " + http_ref + " "
     command += "-P " + PATH_INPUT
+    command += " > /dev/null 2>&1"
 
     # Obtain file info
     file = http_ref.split("/")[-1]
@@ -69,7 +77,7 @@ def download_files(http_ref, count):
 
         if(exists):
             # Read the XML and process it
-            print("Download file '%s'" % (file_path))
+            _logger.info("Download file (%d/%d)'%s'" % (count+1, MAX_FILES_DOWNLOAD, file_path))
 
             # parse an xml file by name
             tree = ET.parse(file_path)  
@@ -83,12 +91,12 @@ def download_files(http_ref, count):
                     if(rel == "next"):
                         download_files(href, count+1)
         else:
-            print("ERROR! Number of attempts to download file '%s' reached" % (file_path))
+            _logger.error("ERROR! Number of attempts to download file '%s' reached" % (file_path))
     else:
-        print("Download process finished")
+        _logger.info("Download process finished")
 
 def process_file(file, tender_list, filter):
-    print("Start processing -> %s" % (file))
+    _logger.info("Start processing -> %s" % (file))
     # Counter
     elem_read = 0
     # parse an xml file by name
@@ -114,8 +122,6 @@ def process_file(file, tender_list, filter):
         list = entry.getElementsByTagName('summary')
         aux = " ".join(t.nodeValue for t in list[0].childNodes if t.nodeType == t.TEXT_NODE)
         summary_list = aux.split('; ')
-        #print(summary)
-        #print(summary_list)
 
         if(len(summary_list) > 0) and (len(summary_list[0].split(': ')) > 1):
             licitacion.expediente = summary_list[0].split(': ')[1]
@@ -215,7 +221,6 @@ def output_csv_file(tender_list, filters):
     foutput.write(FILE_HEADER + "\n")
 
     for key in tender_list.keys():
-        #print(key)
         licitacion = tender_list[key]
         licitacion.filter(filters)
         line = licitacion.info()
@@ -299,7 +304,7 @@ def output_xlsx_file(tender_list, filters):
             importe = float(licitacion.importe)
 
         except:
-            print("ERROR! Cannot convert to float -> %s" % (licitacion.importe))
+            _logger.error("ERROR! Cannot convert to float -> %s" % (licitacion.importe))
 
         if(len(licitacion.interesa) == 0):
             worksheet_interesa.write(row_interesa, 0, date)
@@ -361,11 +366,11 @@ def check_filters(filters_file):
                 
                 if(filter[0] in keys) :
                     filters[filter[0]].append(filter[1])
-                    print("Filter added for '%s' = %s" % (filter[0], filter[1]))
+                    _logger.info("Filter added for '%s' = %s" % (filter[0], filter[1]))
                 else :
-                    print("ERROR! Invalid key in filters config file : %s" % (filter[0]) )
+                    _logger.error("ERROR! Invalid key in filters config file : %s" % (filter[0]) )
             else:
-                print("ERROR! Invalid line in filters config file : %s" % (line) )
+                _logger.error("ERROR! Invalid line in filters config file : %s" % (line) )
     
     return filters
 
@@ -376,7 +381,7 @@ def main(options):
     config.read(options.config)
 
     if(options.nodownload):
-        print("WARN! Files are not going to be downloaded")
+        _logger.warn("WARN! Files are not going to be downloaded")
     else:
         # Generate directories (if it does not exists)
         if not os.path.exists(PATH_INPUT):
@@ -412,45 +417,59 @@ def main(options):
     #filtered = output_csv_file(tender_list)
     filtered, xlsx_filename = output_xlsx_file(tender_list, filters)
 
-    # Move files to archive after processing
-    if(options.noarchive):
-        print("WARN! Files are not going to be archived")
-    else:
-        # Remove first input file
-        clean_start_file()
-        files = get_list_of_files(PATH_INPUT)
-        for file_input in files:
-            file_archive = PATH_ARCHIVE + file_input.split("/")[-1]
-            os.rename(file_input, file_archive)
-
     if(config['EMAIL_CONF']['EMAIL_ENABLED']):
         send_email(config, xlsx_filename)
 
-    print("\nResults:")
-    print("  - Elements read    : %d" % (elem_read))
-    print("  - Elements stored  : %d" % (len(tender_list)))
-    print("  - Interesa         : %d" % (filtered))
-    print("\n")
+    _logger.info("\nResults:")
+    _logger.info("  - Elements read    : %d" % (elem_read))
+    _logger.info("  - Elements stored  : %d" % (len(tender_list)))
+    _logger.info("  - Interesa         : %d" % (filtered))
+    _logger.info("\n")
+
+    # Move files to archive after processing
+    try:
+        if(options.noarchive):
+            _logger.warn("WARN! Files are not going to be archived")
+        else:
+            # Remove first input file
+            clean_start_file()
+            files = get_list_of_files(PATH_INPUT)
+            for file_input in files:
+                file_archive = PATH_ARCHIVE + file_input.split("/")[-1]
+                os.rename(file_input, file_archive)
+    except Exception as ex:
+        _logger.error("ERROR! File cannot archived : " + str(ex))
+
     
 
 def send_email(config, attachment):
-    print("Send email to '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
-    if(check_email(config['EMAIL_CONF']['EMAIL_TO'])):
-        print("Connect to '%s:%d'" % (config['EMAIL_CONF']['EMAIL_SERVER'], int(config['EMAIL_CONF']['EMAIL_PORT'])))
-        s = smtplib.SMTP(config['EMAIL_CONF']['EMAIL_SERVER'], config['EMAIL_CONF']['EMAIL_PORT'])
+    email_server = config['EMAIL_CONF']['EMAIL_SERVER']
+    email_port = int(config['EMAIL_CONF']['EMAIL_PORT'])
+    email_from = config['EMAIL_CONF']['EMAIL_FROM']
+    email_password = config['EMAIL_CONF']['EMAIL_PASSWD']
+    email_to = config['EMAIL_CONF']['EMAIL_TO']
+    
+    email_subject = config['EMAIL_MSG']['EMAIL_SUBJECT']
+    email_text = config['EMAIL_MSG']['EMAIL_TEXT']
+
+    _logger.info("Send email to '%s'" % (email_to))
+
+    if(check_email(email_to)):
+        _logger.info("Connect to '%s:%d'" % (email_server, email_port))
+
+        s = smtplib.SMTP(email_server, email_port)
         s.ehlo() # Hostname to send for this command defaults to the fully qualified domain name of the local host.
         s.starttls() #Puts connection to SMTP server in TLS mode
         s.ehlo()
-        s.login(config['EMAIL_CONF']['EMAIL_FROM'], config['EMAIL_CONF']['EMAIL_PASSWD'])
+        s.login(email_from, email_password)
 
-        f = open(config['EMAIL_MSG']['EMAIL_TEXT'],'r', encoding="utf-8")
+        f = open(email_text,'r', encoding="utf-8")
         text_email = f.read()
 
-
         msg = MIMEMultipart()
-        msg['From'] = config['EMAIL_CONF']['EMAIL_FROM']
-        msg['To'] = config['EMAIL_CONF']['EMAIL_TO']
-        msg['Subject'] = config['EMAIL_MSG']['EMAIL_SUBJECT']
+        msg['From'] = email_from
+        msg['To'] = email_to
+        msg['Subject'] = email_subject
 
         # Add body to email
         msg.attach(MIMEText(text_email, "plain"))
@@ -460,11 +479,11 @@ def send_email(config, attachment):
         if(part):
             msg.attach(part)
 
-        s.sendmail(config['EMAIL_CONF']['EMAIL_FROM'], config['EMAIL_CONF']['EMAIL_TO'], msg.as_string().encode('utf-8'))
+        s.sendmail(email_from, email_to, msg.as_string().encode('utf-8'))
 
-        print("Email enviado a '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
+        _logger.info("Email enviado a '%s'" % (email_to))
     else:
-        rint("ERROR! Email invalido '%s'" % (config['EMAIL_CONF']['EMAIL_TO']))
+        _logger.error("ERROR! Email invalido '%s'" % (email_to))
 
 
 def adjuntar_archivo_xlsx(attachment_filename):
@@ -492,7 +511,7 @@ def adjuntar_archivo_xlsx(attachment_filename):
 
 
 def check_email(email):
-    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$'
     if(re.search(regex,email)):
         return True
     else:
