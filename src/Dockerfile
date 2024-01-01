@@ -8,4 +8,4 @@ COPY App.py .
 COPY Licitacion.py .
 COPY Utils.py .
 
-CMD ["python", "App.py", "--config", "/config/config.ini"]
+CMD ["python", "App.py", "--config", "/config/config.ini", "--filter", "/config/filters.conf"]

@@ -37,7 +37,7 @@ logging.basicConfig(
 _logger = logging.getLogger("contrataciones_estado")
 
 #  Constants
-MAX_FILES_DOWNLOAD = 2
+MAX_FILES_DOWNLOAD = 100
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
@@ -448,7 +448,7 @@ def send_email(config, attachment):
     email_from = config['EMAIL_CONF']['EMAIL_FROM']
     email_password = config['EMAIL_CONF']['EMAIL_PASSWD']
     email_to = config['EMAIL_CONF']['EMAIL_TO']
-    
+
     email_subject = config['EMAIL_MSG']['EMAIL_SUBJECT']
     email_text = config['EMAIL_MSG']['EMAIL_TEXT']
 
