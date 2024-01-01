@@ -12,6 +12,7 @@ from datetime import datetime
 from optparse import OptionParser
 import xlsxwriter
 import logging
+import shutil
 
 import email, smtplib, ssl
 from email import encoders
@@ -436,7 +437,9 @@ def main(options):
             files = get_list_of_files(PATH_INPUT)
             for file_input in files:
                 file_archive = PATH_ARCHIVE + file_input.split("/")[-1]
-                os.rename(file_input, file_archive)
+                _logger.info(f"Move file from {file_input} to {file_archive}")
+                #os.rename(file_input, file_archive)
+                shutil.move(file_input, file_archive)
     except Exception as ex:
         _logger.error("ERROR! File cannot archived : " + str(ex))
 
