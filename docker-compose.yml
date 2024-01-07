@@ -9,6 +9,7 @@ services:
       - ./inputs/:/inputs
       - ./outputs/:/outputs
       - ./archive/:/archive
+      - ./log/:/log
     networks:
       - networkCommon
 
