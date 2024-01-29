@@ -3,7 +3,7 @@ version: "3.5"
 services:
   contrataciones_estado:
     build: ./src
-    restart: no
+    restart: "unless-stopped"
     volumes:
       - ./config/:/app/config
       - ./inputs/:/app/inputs
