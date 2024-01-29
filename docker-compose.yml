@@ -5,10 +5,10 @@ services:
     build: ./src
     restart: no
     volumes:
-      - ./config/:/config
-      - ./inputs/:/inputs
-      - ./outputs/:/outputs
-      - ./archive/:/archive
+      - ./config/:/app/config
+      - ./inputs/:/app/inputs
+      - ./outputs/:/app/outputs
+      - ./archive/:/app/archive
       - ./log/:/log
     networks:
       - networkCommon

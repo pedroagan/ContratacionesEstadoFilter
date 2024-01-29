@@ -28,6 +28,8 @@ import time
 from datetime import datetime
 import re
 
+import gc
+
 import Licitacion
 import Utils
 
@@ -38,13 +40,13 @@ logging.basicConfig(
 _logger = logging.getLogger("contrataciones_estado")
 
 #  Constants
-MAX_FILES_DOWNLOAD = 100
+MAX_FILES_DOWNLOAD = 5
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
-PATH_INPUT = "/inputs/"
-PATH_OUTPUT = "/outputs/"
-PATH_ARCHIVE = "/archive/"
+PATH_INPUT = "./inputs/"
+PATH_OUTPUT = "./outputs/"
+PATH_ARCHIVE = "./archive/"
 
 FILE_HEADER = "#fecha;#interesa;#expediente;#titulo;#administracion;#organo;#estado;#importe;#deadline;#detalles;"
 
@@ -80,17 +82,31 @@ def download_files(http_ref, count):
             # Read the XML and process it
             _logger.info("Download file (%d/%d)'%s'" % (count+1, MAX_FILES_DOWNLOAD, file_path))
 
-            # parse an xml file by name
-            tree = ET.parse(file_path)  
-            root = tree.getroot()
+            next_links = []
 
-            # all item attributes
-            for elem in root:        
-                if(elem.tag == ELEM_TAG_LINK):
-                    href = elem.attrib['href']
-                    rel = elem.attrib['rel']
-                    if(rel == "next"):
-                        download_files(href, count+1)
+            # parse an xml file by name
+            with open(file_path, 'r') as file:
+                tree = ET.parse(file)  
+                root = tree.getroot()
+
+                # all item attributes
+                for elem in root:
+                    if(elem.tag == ELEM_TAG_LINK):
+                        href = elem.attrib['href']
+                        rel = elem.attrib['rel']
+
+                        if(rel == "next"):
+                            next_links.append({'count': count+1, 'href': href})
+                            #download_files(href, count+1)
+
+                root.clear()
+                root = None
+
+            gc.collect()
+
+            for link in next_links:
+                download_files(link['href'], link['count'])
+
         else:
             _logger.error("ERROR! Number of attempts to download file '%s' reached" % (file_path))
     else:
@@ -178,6 +194,8 @@ def process_file(file, tender_list, filter):
             tender_list[key] = licitacion
         
         elem_read += 1
+
+    gc.collect()
     
     return elem_read
 
@@ -453,7 +471,6 @@ def send_email(config, attachment):
     email_to = config['EMAIL_CONF']['EMAIL_TO']
 
     email_subject = config['EMAIL_MSG']['EMAIL_SUBJECT']
-    email_text = config['EMAIL_MSG']['EMAIL_TEXT']
 
     _logger.info("Send email to '%s'" % (email_to))
 
@@ -466,8 +483,7 @@ def send_email(config, attachment):
         s.ehlo()
         s.login(email_from, email_password)
 
-        f = open(email_text,'r', encoding="utf-8")
-        text_email = f.read()
+        text_email = ""
 
         msg = MIMEMultipart()
         msg['From'] = email_from

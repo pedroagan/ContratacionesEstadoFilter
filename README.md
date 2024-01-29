@@ -16,7 +16,6 @@ EMAIL_PASSWD = {EMAIL_PASSWORD}
 
 [EMAIL_MSG]
 EMAIL_SUBJECT = {EMAIL_SUBJECT}
-EMAIL_TEXT = {ROUTE_TO_FILE_WITH_TEXT}
 ```
 
 To filter the data, it is necessary to add a filters file:
