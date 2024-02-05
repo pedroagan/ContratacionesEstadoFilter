@@ -40,7 +40,7 @@ logging.basicConfig(
 _logger = logging.getLogger("contrataciones_estado")
 
 #  Constants
-MAX_FILES_DOWNLOAD = 100
+MAX_FILES_DOWNLOAD = 3
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
@@ -478,9 +478,10 @@ def send_email(config, attachment):
         _logger.info("Connect to '%s:%d'" % (email_server, email_port))
 
         s = smtplib.SMTP(email_server, email_port)
-        s.ehlo() # Hostname to send for this command defaults to the fully qualified domain name of the local host.
-        s.starttls() #Puts connection to SMTP server in TLS mode
-        s.ehlo()
+        s.ehlo('mylowercasehost')
+        s.starttls()
+        s.ehlo('mylowercasehost')
+
         s.login(email_from, email_password)
 
         text_email = ""
