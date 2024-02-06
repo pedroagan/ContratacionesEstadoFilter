@@ -40,7 +40,7 @@ logging.basicConfig(
 _logger = logging.getLogger("contrataciones_estado")
 
 #  Constants
-MAX_FILES_DOWNLOAD = 3
+MAX_FILES_DOWNLOAD = 100
 HTTP_REF_INIT = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom"
 ELEM_TAG_LINK = "{http://www.w3.org/2005/Atom}link"
 
