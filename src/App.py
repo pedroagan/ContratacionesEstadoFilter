@@ -474,34 +474,45 @@ def send_email(config, attachment):
 
     _logger.info("Send email to '%s'" % (email_to))
 
+    email_sent = False
+    email_sent_attempts = 0
+
     if(check_email(email_to)):
-        _logger.info("Connect to '%s:%d'" % (email_server, email_port))
+        while(not email_sent and email_sent_attempts < 5):
+            try:
+                _logger.info("Connect to '%s:%d'" % (email_server, email_port))
 
-        s = smtplib.SMTP(email_server, email_port)
-        s.ehlo('mylowercasehost')
-        s.starttls()
-        s.ehlo('mylowercasehost')
+                s = smtplib.SMTP(email_server, email_port)
+                s.ehlo('mylowercasehost')
+                s.starttls()
+                s.ehlo('mylowercasehost')
 
-        s.login(email_from, email_password)
+                s.login(email_from, email_password)
 
-        text_email = ""
+                text_email = ""
 
-        msg = MIMEMultipart()
-        msg['From'] = email_from
-        msg['To'] = email_to
-        msg['Subject'] = email_subject
+                msg = MIMEMultipart()
+                msg['From'] = email_from
+                msg['To'] = email_to
+                msg['Subject'] = email_subject
 
-        # Add body to email
-        msg.attach(MIMEText(text_email, "plain"))
+                # Add body to email
+                msg.attach(MIMEText(text_email, "plain"))
 
-        # Add attachment to message and convert message to string
-        part = adjuntar_archivo_xlsx(attachment)
-        if(part):
-            msg.attach(part)
+                # Add attachment to message and convert message to string
+                part = adjuntar_archivo_xlsx(attachment)
+                if(part):
+                    msg.attach(part)
+        
+                s.sendmail(email_from, email_to, msg.as_string().encode('utf-8'))
+                _logger.info("Email enviado a '%s'" % (email_to))
 
-        s.sendmail(email_from, email_to, msg.as_string().encode('utf-8'))
+            except Exception as ex:
+                _logger.error("ERROR! Email cannot be sent : " + str(ex))
+            
+            time.sleep(5)
+            email_sent_attempts += 1
 
-        _logger.info("Email enviado a '%s'" % (email_to))
     else:
         _logger.error("ERROR! Email invalido '%s'" % (email_to))
 
