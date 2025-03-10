@@ -7,31 +7,21 @@ from os.path import isfile, join
 from xml.dom import minidom
 from lxml import etree
 import xml.etree.ElementTree as ET
-import datetime
 from datetime import datetime
 from optparse import OptionParser
 import xlsxwriter
 import logging
 import shutil
-
-import email, smtplib, ssl
-from email import encoders
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-
-from optparse import OptionParser
 import configparser
 import pandas as pd
 import numpy as np
-import time
-from datetime import datetime
-import re
 
 import gc
 
 import Licitacion
 import Utils
+import MailClient
+import MailgunClient
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)-7s %(message)s',
@@ -54,7 +44,7 @@ def download_files(http_ref, count):
     # Manage command
     command = "wget " + http_ref + " "
     command += "-P " + PATH_INPUT
-    command += " > /dev/null 2>&1"
+    #command += " > /dev/null 2>&1"
 
     # Obtain file info
     file = http_ref.split("/")[-1]
@@ -436,14 +426,21 @@ def main(options):
     #filtered = output_csv_file(tender_list)
     filtered, xlsx_filename = output_xlsx_file(tender_list, filters)
 
-    if(config['EMAIL_CONF']['EMAIL_ENABLED']):
-        send_email(config, xlsx_filename)
+    text_email = ""
+    text_email += "Results:\n"
+    text_email += "  - Elements read    : %d\n" % (elem_read)
+    text_email += "  - Elements stored  : %d\n" % (len(tender_list))
+    text_email += "  - Interesa         : %d\n" % (filtered)
 
-    _logger.info("\nResults:")
-    _logger.info("  - Elements read    : %d" % (elem_read))
-    _logger.info("  - Elements stored  : %d" % (len(tender_list)))
-    _logger.info("  - Interesa         : %d" % (filtered))
-    _logger.info("\n")
+    if(config['EMAIL_MODE']['EMAIL_ENABLED']):
+        if(config['EMAIL_MODE']['EMAIL_PROVIDER'] == 'MAILGUN'):
+            MailgunClient.send_email(config, xlsx_filename, text_email)
+        else:
+            MailClient.send_email(config, xlsx_filename, text_email)
+    else:
+        _logger.info("Email disabled")
+
+    _logger.info(f"\n{text_email}\n")
 
     # Move files to archive after processing
     try:
@@ -460,93 +457,6 @@ def main(options):
                 shutil.move(file_input, file_archive)
     except Exception as ex:
         _logger.error("ERROR! File cannot archived : " + str(ex))
-
-    
-
-def send_email(config, attachment):
-    email_server = config['EMAIL_CONF']['EMAIL_SERVER']
-    email_port = int(config['EMAIL_CONF']['EMAIL_PORT'])
-    email_from = config['EMAIL_CONF']['EMAIL_FROM']
-    email_password = config['EMAIL_CONF']['EMAIL_PASSWD']
-    email_to = config['EMAIL_CONF']['EMAIL_TO']
-
-    email_subject = config['EMAIL_MSG']['EMAIL_SUBJECT']
-
-    _logger.info("Send email to '%s'" % (email_to))
-
-    email_sent = False
-    email_sent_attempts = 0
-
-    if(check_email(email_to)):
-        while(not email_sent and email_sent_attempts < 5):
-            try:
-                _logger.info("Connect to '%s:%d'" % (email_server, email_port))
-
-                s = smtplib.SMTP(email_server, email_port)
-                s.ehlo('mylowercasehost')
-                s.starttls()
-                s.ehlo('mylowercasehost')
-
-                s.login(email_from, email_password)
-
-                text_email = ""
-
-                msg = MIMEMultipart()
-                msg['From'] = email_from
-                msg['To'] = email_to
-                msg['Subject'] = email_subject
-
-                # Add body to email
-                msg.attach(MIMEText(text_email, "plain"))
-
-                # Add attachment to message and convert message to string
-                part = adjuntar_archivo_xlsx(attachment)
-                if(part):
-                    msg.attach(part)
-        
-                s.sendmail(email_from, email_to, msg.as_string().encode('utf-8'))
-                _logger.info("Email enviado a '%s'" % (email_to))
-
-            except Exception as ex:
-                _logger.error("ERROR! Email cannot be sent : " + str(ex))
-            
-            time.sleep(5)
-            email_sent_attempts += 1
-
-    else:
-        _logger.error("ERROR! Email invalido '%s'" % (email_to))
-
-
-def adjuntar_archivo_xlsx(attachment_filename):
-    part = None
-
-    if(len(attachment_filename) > 0):
-        # Open PDF file in binary mode
-        #with open(attachment, "rb") as attachment:
-        #    # Add file as application/octet-stream
-        #    # Email client can usually download this automatically as attachment
-        #    part = MIMEBase("application", "octet-stream")
-        #    part.set_payload(attachment.read())
-
-        # Open PDF file in binary mode
-        part = MIMEBase('application', "octet-stream")
-        part.set_payload(open(attachment_filename, "rb").read())
-        encoders.encode_base64(part)
-        # Add header as key/value pair to attachment part
-        part.add_header(
-            "Content-Disposition",
-            f"attachment; filename= {os.path.basename(attachment_filename)}",
-        )
-
-    return part
-
-
-def check_email(email):
-    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$'
-    if(re.search(regex,email)):
-        return True
-    else:
-        return False
 
 ##
 # Main method

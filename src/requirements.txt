@@ -1,5 +1,6 @@
-certifi==2022.5.18.1
-lxml
-xlsxwriter
-wheel
-pandas
+certifi==2025.1.31
+lxml==5.3.1
+xlsxwriter==3.2.2
+wheel==0.45.1
+pandas==2.2.3
+requests==2.32.3

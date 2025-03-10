@@ -136,5 +136,7 @@ inputs
 outputs
 archive
 log
+persist
+contrataciones
 *.ini
 *.conf
